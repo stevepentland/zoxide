@@ -9,7 +9,7 @@ use bincode::Options;
 use ouroboros::self_referencing;
 
 pub use crate::db::dir::{Dir, Epoch, Rank};
-pub use crate::db::stream::Stream;
+pub use crate::db::stream::{Stream, StreamOptions};
 use crate::{config, util};
 
 #[self_referencing]
@@ -33,6 +33,7 @@ impl Database {
     pub fn open_dir(data_dir: impl AsRef<Path>) -> Result<Self> {
         let data_dir = data_dir.as_ref();
         let path = data_dir.join("db.zo");
+        let path = fs::canonicalize(&path).unwrap_or(path);
 
         match fs::read(&path) {
             Ok(bytes) => Self::try_new(path, bytes, |bytes| Self::deserialize(bytes), false),
@@ -133,10 +134,6 @@ impl Database {
             }
         });
         self.with_dirty_mut(|dirty_prev| *dirty_prev |= dirty);
-    }
-
-    pub fn stream(&mut self, now: Epoch) -> Stream {
-        Stream::new(self, now)
     }
 
     pub fn dedup(&mut self) {
